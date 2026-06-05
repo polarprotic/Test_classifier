@@ -8,7 +8,7 @@ from PIL import Image
 # 1. CONFIGURATION
 # ==========================================
 INPUT_FOLDER = "test_images"
-MODEL_PATH = "newspaper_classifier_3_best_again_2.pt"
+MODEL_PATH = "newspaper_classifier_3_best_again.pt"
 
 CLASS_NAMES = {
     0: "Article",
@@ -51,51 +51,54 @@ def predict_images():
 
     print(f"Scanning '{INPUT_FOLDER}' for images...\n")
 
-    print(f"{'IMAGE PATH':<70} | {'PREDICTION':<15} | {'CONFIDENCE'}")
-    print("-" * 105)
+    print(
+        f"{'IMAGE':<35} | "
+        f"{'PREDICTION':<12} | "
+        f"{'ARTICLE':<10} | "
+        f"{'CLASSIFIED':<10} | "
+        f"{'DISPLAY':<10}"
+    )
+
+    print("-" * 95)
 
     for filename in os.listdir(INPUT_FOLDER):
         if not filename.lower().endswith(valid_extensions):
             continue
 
         file_path = os.path.join(INPUT_FOLDER, filename)
-        full_path = os.path.abspath(file_path)
 
         try:
-            # Load and prepare the image
+            # Load and prepare image
             image = Image.open(file_path).convert('RGB')
             image_tensor = transform(image).unsqueeze(0).to(device)
 
-            # Make prediction
+            # Raw model outputs (logits)
             with torch.no_grad():
                 outputs = model(image_tensor)
 
-                # Temperature-scaled softmax
-                TEMPERATURE = 0.75
+            logits = outputs[0]
 
-                probabilities = torch.softmax(
-                    outputs / TEMPERATURE,
-                    dim=1
-                )[0]
+            article_logit = logits[0].item()
+            classified_logit = logits[1].item()
+            display_logit = logits[2].item()
 
-                max_prob, predicted_idx = torch.max(probabilities, 0)
-
-            confidence_pct = int(round(max_prob.item() * 100))
-            predicted_class = CLASS_NAMES[predicted_idx.item()]
+            predicted_idx = torch.argmax(logits).item()
+            predicted_class = CLASS_NAMES[predicted_idx]
 
             print(
-                f"{full_path:<70} | "
-                f"{predicted_class:<15} | "
-                f"{confidence_pct}%"
+                f"{filename:<35} | "
+                f"{predicted_class:<12} | "
+                f"{article_logit:9.3f} | "
+                f"{classified_logit:9.3f} | "
+                f"{display_logit:9.3f}"
             )
 
             processed_count += 1
 
         except Exception as e:
-            print(f"Error processing {full_path}: {e}")
+            print(f"Error processing {filename}: {e}")
 
     print(f"\nFinished! Processed {processed_count} images.")
-
 
 if __name__ == "__main__":
     predict_images()
