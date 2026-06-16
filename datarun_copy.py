@@ -1085,7 +1085,7 @@ def main(newspaper_img):
             label_file_path=label_txt_path,
             crops_root=folder_to_check,
             class_names=class_names,
-            threshold=0.75
+            threshold=0.80
         )
 
         print(f"\n{'IMAGE PATH':<70} | {'OLD PREDICTION':<20} | {'NEW PREDICTION'}")
